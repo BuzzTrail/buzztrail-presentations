@@ -1,0 +1,117 @@
+name: Deploy Slidev Presentations to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Build all decks
+        run: |
+          # Create output directory
+          mkdir -p dist
+
+          # Build each deck
+          for deck_dir in decks/*/; do
+            if [ -d "$deck_dir" ]; then
+              deck_id=$(basename "$deck_dir")
+              echo "Building deck: $deck_id"
+
+              cd "$deck_dir"
+
+              # Install dependencies
+              pnpm install
+
+              # Build with correct base path
+              pnpm slidev build --base "/buzztrail-presentations/$deck_id/" --out "../../dist/$deck_id"
+
+              cd ../..
+            fi
+          done
+
+          # Create index page listing all decks
+          cat > dist/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>BuzzTrail Presentations</title>
+            <style>
+              body { font-family: system-ui; max-width: 800px; margin: 50px auto; padding: 20px; }
+              h1 { color: #333; }
+              ul { list-style: none; padding: 0; }
+              li { margin: 10px 0; }
+              a { color: #0066cc; text-decoration: none; font-size: 18px; }
+              a:hover { text-decoration: underline; }
+            </style>
+          </head>
+          <body>
+            <h1>BuzzTrail Presentations</h1>
+            <p>Available presentation decks:</p>
+            <ul id="decks"></ul>
+            <script>
+              // List all subdirectories as deck links
+              fetch(window.location.href)
+                .then(r => r.text())
+                .then(html => {
+                  const parser = new DOMParser();
+                  const doc = parser.parseFromString(html, 'text/html');
+                  const links = Array.from(doc.querySelectorAll('a'))
+                    .map(a => a.getAttribute('href'))
+                    .filter(href => href && href.endsWith('/') && !href.startsWith('..'))
+                    .filter(href => href !== './');
+
+                  const ul = document.getElementById('decks');
+                  links.forEach(link => {
+                    const li = document.createElement('li');
+                    const a = document.createElement('a');
+                    a.href = link;
+                    a.textContent = link.replace('/', '');
+                    li.appendChild(a);
+                    ul.appendChild(li);
+                  });
+                });
+            </script>
+          </body>
+          </html>
+          EOF
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './dist'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
