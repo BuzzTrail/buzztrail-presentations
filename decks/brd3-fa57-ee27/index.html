@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BuzzTrail</title>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .slide {
+      display: none;
+      text-align: center;
+      max-width: 800px;
+      padding: 2rem;
+    }
+    .slide.active {
+      display: block;
+      animation: fadeIn 0.5s;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    h1 { font-size: 3rem; margin: 0 0 1rem; }
+    p { font-size: 1.5rem; line-height: 1.6; }
+    .controls {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 1rem;
+    }
+    button {
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      background: rgba(255,255,255,0.2);
+      border: 2px solid white;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: rgba(255,255,255,0.3);
+    }
+    .slide-number {
+      position: fixed;
+      top: 2rem;
+      right: 2rem;
+      font-size: 1rem;
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+  <div class="slide-number" id="slideNumber">1 / 3</div>
+
+  <div class="slide active" data-slide="1">
+    <h1>BuzzTrail</h1>
+    <p>Welcome to BuzzTrail Voice Demo</p>
+  </div>
+
+  <div class="slide" data-slide="2">
+    <h1>About Us</h1>
+    <p>Welcome Lars! This is an AI-powered voice demo with live slides.</p>
+    <p><strong>Industry:</strong> Technology</p>
+  </div>
+
+  <div class="slide" data-slide="3">
+    <h1>Thank You</h1>
+    <p>Questions?</p>
+  </div>
+
+  <div class="controls">
+    <button id="prevBtn">← Previous</button>
+    <button id="nextBtn">Next →</button>
+  </div>
+
+  <script type="module">
+    // Supabase Realtime control integration
+    const SUPABASE_URL = 'https://dwdytxxqcvlrmyemonxz.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3ZHl0eHhxY3Zscm15ZW1vbnh6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1OTg2NDU1MywiZXhwIjoyMDc1NDQwNTUzfQ.5Uf2zXKAqcxE3XQ4gxB8lbph7z4JZEXxtgINTPJnTMk'; // Using service key for MVP
+    const DECK_ID = 'brd3-fa57-ee27';
+
+    const { createClient } = supabase;
+    const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let currentSlide = 1;
+    const totalSlides = 3;
+
+    function showSlide(n) {
+      const slides = document.querySelectorAll('.slide');
+      if (n > totalSlides) currentSlide = 1;
+      if (n < 1) currentSlide = totalSlides;
+
+      slides.forEach(slide => slide.classList.remove('active'));
+      slides[currentSlide - 1].classList.add('active');
+      document.getElementById('slideNumber').textContent = currentSlide + ' / ' + totalSlides;
+    }
+
+    function nextSlide() {
+      currentSlide++;
+      showSlide(currentSlide);
+    }
+
+    function prevSlide() {
+      currentSlide--;
+      showSlide(currentSlide);
+    }
+
+    // Manual controls
+    document.getElementById('nextBtn').onclick = nextSlide;
+    document.getElementById('prevBtn').onclick = prevSlide;
+
+    // Keyboard controls
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
+      if (e.key === 'ArrowLeft') prevSlide();
+    });
+
+    // Supabase Realtime control
+    console.log('[Slidev] Subscribing to control commands for deck:', DECK_ID);
+
+    supabaseClient
+      .channel(`deck:${DECK_ID}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'slide_control_commands',
+        filter: `deck_id=eq.${DECK_ID}`
+      }, (payload) => {
+        console.log('[Slidev] Received control command:', payload.new);
+        const { command, slide_id } = payload.new;
+
+        switch (command) {
+          case 'next':
+            nextSlide();
+            break;
+          case 'prev':
+            prevSlide();
+            break;
+          case 'goto':
+            if (slide_id) {
+              currentSlide = parseInt(slide_id);
+              showSlide(currentSlide);
+            }
+            break;
+        }
+      })
+      .subscribe((status) => {
+        console.log('[Slidev] Realtime subscription status:', status);
+      });
+  </script>
+</body>
+</html>
