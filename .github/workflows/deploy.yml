@@ -110,8 +110,8 @@ jobs:
           EOF
 
           # Create root-level 404.html for multi-deck SPA routing
-          # GitHub Pages only serves 404.html from root, not subdirectories
-          # This redirects /deck-id/slide to /deck-id/#/slide
+          # Redirects /deck-id/slide to /deck-id/?p=slide
+          # The deck's index.html then reads the query param and navigates
           cat > dist/404.html << 'EOF'
           <!DOCTYPE html>
           <html>
@@ -119,19 +119,25 @@ jobs:
               <meta charset="utf-8">
               <title>Redirecting...</title>
               <script>
-                // Parse path: /buzztrail-presentations/deck-id/slide
                 var path = window.location.pathname.split('/').filter(Boolean);
-                // path[0] = 'buzztrail-presentations', path[1] = deck-id, path[2] = slide
                 if (path.length >= 2) {
                   var base = '/' + path.slice(0, 2).join('/') + '/';
                   var slide = path[2] || '';
-                  window.location.replace(base + (slide ? '#/' + slide : ''));
+                  // Redirect to deck root with slide as query param
+                  window.location.replace(base + (slide ? '?p=' + slide : ''));
                 }
               </script>
             </head>
             <body></body>
           </html>
           EOF
+
+          # Inject script into each deck's index.html to handle the ?p= param
+          for deck_dir in dist/*/; do
+            if [ -f "$deck_dir/index.html" ]; then
+              sed -i 's|</head>|<script>if(location.search){var p=new URLSearchParams(location.search).get("p");if(p)history.replaceState(null,null,location.pathname+p)}</script></head>|' "$deck_dir/index.html"
+            fi
+          done
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
