@@ -59,8 +59,8 @@ jobs:
                 cp -r public/* "../../dist/$deck_id/"
               fi
 
-              # Create 404.html for SPA routing (handles refresh on slide URLs like /2, /3)
-              bash ../../scripts/create-spa-routing.sh "../../dist/$deck_id"
+              # Copy index.html as 404.html for SPA routing (standard Slidev approach)
+              cp "../../dist/$deck_id/index.html" "../../dist/$deck_id/404.html"
 
               cd ../..
             fi
@@ -112,30 +112,31 @@ jobs:
           </html>
           EOF
 
-          # Create root-level 404.html for GitHub Pages SPA routing
-          # This handles ALL 404s across all decks
+          # Create root-level 404.html that redirects to the deck
+          # GitHub Pages only serves one 404.html from root
           cat > dist/404.html << 'EOF'
           <!DOCTYPE html>
           <html>
             <head>
               <meta charset="utf-8">
               <title>Redirecting...</title>
-              <script type="text/javascript">
-                // SPA redirect for GitHub Pages
-                // Handles paths like /buzztrail-presentations/deck-id/2
-                // pathSegmentsToKeep = 2 for /buzztrail-presentations/deck-id/
-                var pathSegmentsToKeep = 2;
-                var l = window.location;
-                l.replace(
-                  l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-                  l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
-                  l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
-                  (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
-                  l.hash
-                );
+              <script>
+                // Extract deck ID from path and redirect to deck root
+                // Path format: /buzztrail-presentations/deck-id/slide-number
+                var path = window.location.pathname.split('/');
+                if (path.length >= 3 && path[1] === 'buzztrail-presentations') {
+                  var deckId = path[2];
+                  if (deckId) {
+                    // Redirect to deck root with hash for slide number
+                    var slideNum = path[3] || '';
+                    var newUrl = '/buzztrail-presentations/' + deckId + '/' + (slideNum ? '#/' + slideNum : '');
+                    window.location.replace(newUrl);
+                  }
+                }
               </script>
             </head>
             <body>
+              <p>Redirecting...</p>
             </body>
           </html>
           EOF
