@@ -60,7 +60,7 @@ jobs:
               fi
 
               # Create 404.html for SPA routing (handles refresh on slide URLs like /2, /3)
-              cp "../../dist/$deck_id/index.html" "../../dist/$deck_id/404.html"
+              bash ../../scripts/create-spa-routing.sh "../../dist/$deck_id"
 
               cd ../..
             fi
