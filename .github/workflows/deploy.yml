@@ -109,35 +109,6 @@ jobs:
           </html>
           EOF
 
-          # Create root-level 404.html that redirects to the deck
-          # GitHub Pages only serves one 404.html from root
-          cat > dist/404.html << 'EOF'
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <meta charset="utf-8">
-              <title>Redirecting...</title>
-              <script>
-                // Extract deck ID from path and redirect to deck root
-                // Path format: /buzztrail-presentations/deck-id/slide-number
-                var path = window.location.pathname.split('/');
-                if (path.length >= 3 && path[1] === 'buzztrail-presentations') {
-                  var deckId = path[2];
-                  if (deckId) {
-                    // Redirect to deck root with hash for slide number
-                    var slideNum = path[3] || '';
-                    var newUrl = '/buzztrail-presentations/' + deckId + '/' + (slideNum ? '#/' + slideNum : '');
-                    window.location.replace(newUrl);
-                  }
-                }
-              </script>
-            </head>
-            <body>
-              <p>Redirecting...</p>
-            </body>
-          </html>
-          EOF
-
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
