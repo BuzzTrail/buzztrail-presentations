@@ -109,6 +109,30 @@ jobs:
           </html>
           EOF
 
+          # Create root-level 404.html for multi-deck SPA routing
+          # GitHub Pages only serves 404.html from root, not subdirectories
+          # This redirects /deck-id/slide to /deck-id/#/slide
+          cat > dist/404.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <meta charset="utf-8">
+              <title>Redirecting...</title>
+              <script>
+                // Parse path: /buzztrail-presentations/deck-id/slide
+                var path = window.location.pathname.split('/').filter(Boolean);
+                // path[0] = 'buzztrail-presentations', path[1] = deck-id, path[2] = slide
+                if (path.length >= 2) {
+                  var base = '/' + path.slice(0, 2).join('/') + '/';
+                  var slide = path[2] || '';
+                  window.location.replace(base + (slide ? '#/' + slide : ''));
+                }
+              </script>
+            </head>
+            <body></body>
+          </html>
+          EOF
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
