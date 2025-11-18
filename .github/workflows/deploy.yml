@@ -54,6 +54,11 @@ jobs:
               # Build with correct base path
               pnpm slidev build --base "/buzztrail-presentations/$deck_id/" --out "../../dist/$deck_id"
 
+              # Copy public directory assets (images, etc.) if they exist
+              if [ -d "public" ]; then
+                cp -r public/* "../../dist/$deck_id/"
+              fi
+
               cd ../..
             fi
           done
