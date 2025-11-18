@@ -51,16 +51,13 @@ jobs:
               # Install dependencies
               pnpm install
 
-              # Build with correct base path
+              # Build with correct base path (Slidev v52+ auto-generates 404.html)
               pnpm slidev build --base "/buzztrail-presentations/$deck_id/" --out "../../dist/$deck_id"
 
               # Copy public directory assets (images, etc.) if they exist
               if [ -d "public" ]; then
                 cp -r public/* "../../dist/$deck_id/"
               fi
-
-              # Copy index.html as 404.html for SPA routing (standard Slidev approach)
-              cp "../../dist/$deck_id/index.html" "../../dist/$deck_id/404.html"
 
               cd ../..
             fi
