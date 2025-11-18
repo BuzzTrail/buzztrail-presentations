@@ -32,6 +32,7 @@ EOF
 
 # Inject redirect handler into index.html
 # This script reads the query string and restores the original URL
-sed -i 's|<head>|<head><script type="text/javascript">(function(l){if(l.search[1]==="/"){var decoded=l.search.slice(1).split("\&").map(function(s){return s.replace(/~and~/g,"\&")}).join("?");window.history.replaceState(null,null,l.pathname.slice(0,-1)+decoded+l.hash)}}(window.location))</script>|' "$DECK_DIR/index.html"
+# Only process if there's actually a path after the /?/
+sed -i 's|<head>|<head><script type="text/javascript">(function(l){if(l.search[1]==="/"&&l.search.length>2){var decoded=l.search.slice(1).split("\&").map(function(s){return s.replace(/~and~/g,"\&")}).join("?");window.history.replaceState(null,null,l.pathname.slice(0,-1)+decoded+l.hash)}}(window.location))</script>|' "$DECK_DIR/index.html"
 
 echo "SPA routing configured for $DECK_DIR"
